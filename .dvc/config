@@ -1,4 +1,4 @@
 [core]
     remote = origin
 ['remote "origin"']
-    url = s3://churnguard-data-klasta/churnguard/data
+    url = s3://fraudguard-data-klasta/fraudguard/data
