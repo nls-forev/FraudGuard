@@ -28,7 +28,7 @@ jobs:
       - name: Detect Secrets
         run: |
           detect-secrets scan \
-            --update .secrets.baseline \
+            --baseline .secrets.baseline \
             --exclude-files '^data/.*\.dvc$'
 
           git diff --exit-code .secrets.baseline
