@@ -29,6 +29,6 @@ jobs:
         run: |
           detect-secrets scan \
             --baseline .secrets.baseline \
-            --exclude-files '^data/.*\.dvc$'
+            --exclude-files '.*\.dvc$'
 
           git diff --exit-code .secrets.baseline
