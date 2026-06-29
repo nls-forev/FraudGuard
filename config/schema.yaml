@@ -1,0 +1,92 @@
+id: baf_xgboost_schema
+
+columns:
+  - income
+  - name_email_similarity
+  - prev_address_months_count
+  - current_address_months_count
+  - customer_age
+  - intended_balcon_amount
+  - zip_count_4w
+  - velocity_6h
+  - velocity_24h
+  - velocity_4w
+  - bank_branch_count_8w
+  - date_of_birth_distinct_emails_4w
+  - credit_risk_score
+  - bank_months_count
+  - proposed_credit_limit
+  - session_length_in_minutes
+  - device_distinct_emails_8w
+  - month
+  - email_is_free
+  - phone_home_valid
+  - phone_mobile_valid
+  - has_other_cards
+  - foreign_request
+  - keep_alive_session
+  - payment_type
+  - employment_status
+  - housing_status
+  - source
+  - device_os
+  - fraud_bool
+
+numeric_columns:
+  - income
+  - name_email_similarity
+  - prev_address_months_count
+  - current_address_months_count
+  - customer_age
+  - intended_balcon_amount
+  - zip_count_4w
+  - velocity_6h
+  - velocity_24h
+  - velocity_4w
+  - bank_branch_count_8w
+  - date_of_birth_distinct_emails_4w
+  - credit_risk_score
+  - bank_months_count
+  - proposed_credit_limit
+  - session_length_in_minutes
+  - device_distinct_emails_8w
+  - month
+
+categorical_columns:
+  - payment_type
+  - employment_status
+  - housing_status
+  - source
+  - device_os
+
+binary_columns:
+  - email_is_free
+  - phone_home_valid
+  - phone_mobile_valid
+  - has_other_cards
+  - foreign_request
+  - keep_alive_session
+
+log1p_columns:
+  - zip_count_4w
+  - velocity_6h
+  - velocity_24h
+  - velocity_4w
+  - bank_branch_count_8w
+  - date_of_birth_distinct_emails_4w
+  - prev_address_months_count
+  - current_address_months_count
+  - bank_months_count
+  - session_length_in_minutes
+  - device_distinct_emails_8w
+  - proposed_credit_limit
+
+sentinel_columns:
+  - prev_address_months_count
+  - current_address_months_count
+  - bank_months_count
+  - session_length_in_minutes
+  - device_distinct_emails_8w
+
+target:
+  - fraud_bool

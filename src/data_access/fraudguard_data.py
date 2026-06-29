@@ -33,10 +33,10 @@ class FraudGuardData:
             else:
                 collection = self.mongo_client.client[database_name][collection_name]  # pyright: ignore[reportOptionalSubscript]
 
-                df = pd.DataFrame(list(collection.find()))
-                logging.info("Successfully fetched data from mongoDB")
-                df.drop("_id", axis=1, inplace=True)
-                df.replace({"na": np.nan}, inplace=True)
+            df = pd.DataFrame(list(collection.find()))
+            logging.info("Successfully fetched data from mongoDB")
+            df.drop("_id", axis=1, inplace=True)
+            df.replace({"na": np.nan}, inplace=True)
 
             return df
 

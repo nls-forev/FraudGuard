@@ -13,3 +13,7 @@ wheels/
 docs
 learn
 notebook
+logs
+artifact
+
+*.ipynb

@@ -27,12 +27,12 @@ class DataIngestion:
 
             logging.info(f"Shape of dataframe: {df.shape}")
 
-            feature_store_file_path = self.data_ingestion_config.feature_store_file_path
+            feature_store_file_path = self.data_ingestion_config.feature_store_file
             dir_path = os.path.dirname(feature_store_file_path)
             os.makedirs(dir_path, exist_ok=True)
 
             df.to_csv(feature_store_file_path, index=False, header=True)
-            logging.infof(f"Saved Exported data: {feature_store_file_path}")
+            logging.info(f"Saved Exported data: {feature_store_file_path}")
 
             return df
 
@@ -53,10 +53,10 @@ class DataIngestion:
 
             logging.info("Exporting train and test set")
             train_set.to_csv(
-                self.data_ingestion_config.training_file, index=False, Header=True
+                self.data_ingestion_config.training_file, index=False, header=True
             )
             test_set.to_csv(
-                self.data_ingestion_config.testing_file, index=False, Header=True
+                self.data_ingestion_config.testing_file, index=False, header=True
             )
             logging.info(f"Exported train and test set to {dir_name}/")
 
