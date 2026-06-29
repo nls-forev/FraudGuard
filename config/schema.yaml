@@ -88,5 +88,4 @@ sentinel_columns:
   - session_length_in_minutes
   - device_distinct_emails_8w
 
-target:
-  - fraud_bool
+target: fraud_bool

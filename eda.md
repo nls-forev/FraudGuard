@@ -1,106 +1,12 @@
-import numpy as np
-import pandas as pd
-
-from sklearn.compose import ColumnTransformer
-from sklearn.impute import SimpleImputer
-from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
-
-
-# ============================================================
-# Config
-# ============================================================
-DATA_PATH = "data/base.csv"   # change if needed
-TARGET = "fraud_bool"
-
-DROP_COLS = [
-    "days_since_request",     # extra column vs training schema
-    "device_fraud_count",     # constant zero in your EDA
-]
-
-# Columns where -1 means "missing / not available"
-SENTINEL_COLS = [
-    "prev_address_months_count",
-    "current_address_months_count",
-    "bank_months_count",
-    "session_length_in_minutes",
-    "device_distinct_emails_8w",
-]
-
-# Add missing-indicator flags for these columns
-MISSING_FLAG_COLS = SENTINEL_COLS.copy()
-
-# Strongly skewed, non-negative columns that benefit from log1p
-LOG1P_COLS = [
-    "zip_count_4w",
-    "velocity_6h",
-    "velocity_24h",
-    "velocity_4w",
-    "bank_branch_count_8w",
-    "date_of_birth_distinct_emails_4w",
-    "prev_address_months_count",
-    "current_address_months_count",
-    "bank_months_count",
-    "session_length_in_minutes",
-    "device_distinct_emails_8w",
-    "proposed_credit_limit",
-]
-
-BINARY_COLS = [
-    "email_is_free",
-    "phone_home_valid",
-    "phone_mobile_valid",
-    "has_other_cards",
-    "foreign_request",
-    "keep_alive_session",
-]
-
-CATEGORICAL_COLS = [
-    "payment_type",
-    "employment_status",
-    "housing_status",
-    "source",
-    "device_os",
-]
-
-NUMERIC_COLS = [
-    "income",
-    "name_email_similarity",
-    "prev_address_months_count",
-    "current_address_months_count",
-    "customer_age",
-    "intended_balcon_amount",
-    "zip_count_4w",
-    "velocity_6h",
-    "velocity_24h",
-    "velocity_4w",
-    "bank_branch_count_8w",
-    "date_of_birth_distinct_emails_4w",
-    "credit_risk_score",
-    "bank_months_count",
-    "proposed_credit_limit",
-    "session_length_in_minutes",
-    "device_distinct_emails_8w",
-    "month",
-]
-
-# Numerical columns after adding missing flags
-NUMERIC_WITH_FLAGS = NUMERIC_COLS + [f"{c}_missing" for c in MISSING_FLAG_COLS]
-
-
-# ============================================================
-# Cleaning / feature engineering
-# ============================================================
 def clean_baf_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
-    # Drop columns not used in the schema / no signal
+    # Drop unused / dead features
     for col in DROP_COLS:
         if col in df.columns:
             df = df.drop(columns=col)
 
-    # Standardize categorical strings
+    # Standardize categorical text
     for col in CATEGORICAL_COLS:
         if col in df.columns:
             if col == "device_os":
@@ -108,29 +14,27 @@ def clean_baf_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             else:
                 df[col] = df[col].astype(str).str.upper().str.strip()
 
-    # Cast target
+    # Target
     df[TARGET] = df[TARGET].astype(int)
 
-    # Cast binary columns to integers
+    # Binary columns
     for col in BINARY_COLS:
         df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
 
-    # Create missing flags before replacing sentinel values
+    # Add missing flags before replacing sentinel values
     for col in SENTINEL_COLS:
-        flag_col = f"{col}_missing"
-        df[flag_col] = (df[col] == -1).astype("Int64")
+        df[f"{col}_missing"] = (df[col] == -1).astype("Int64")
 
-    # Replace sentinel -1 with NaN in designated columns
+    # Replace sentinel -1 with NaN
     for col in SENTINEL_COLS:
         df[col] = pd.to_numeric(df[col], errors="coerce")
         df.loc[df[col] == -1, col] = np.nan
 
-    # Convert all numeric columns to numeric dtype
+    # Numeric conversion
     for col in NUMERIC_COLS:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    # Log-transform skewed non-negative features
-    # (sentinel -1 has already been replaced with NaN)
+    # Log1p for heavy-tailed count-like features
     for col in LOG1P_COLS:
         if col in df.columns:
             df[col] = np.log1p(df[col])
@@ -138,25 +42,19 @@ def clean_baf_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# ============================================================
-# Preprocessor
-# ============================================================
-def build_preprocessor(scale_numeric: bool = False) -> ColumnTransformer:
-    """
-    scale_numeric=False is a good default for tree models (XGBoost/LightGBM/CatBoost/RandomForest).
-    Set scale_numeric=True for linear models / SVM.
-    """
-
+def build_preprocessor():
     try:
         ohe = OneHotEncoder(handle_unknown="ignore", sparse_output=False)
     except TypeError:
         ohe = OneHotEncoder(handle_unknown="ignore", sparse=False)
 
-    numeric_steps = [("imputer", SimpleImputer(strategy="median"))]
-    if scale_numeric:
-        numeric_steps.append(("scaler", StandardScaler()))
+    numeric_features = NUMERIC_COLS + [f"{c}_missing" for c in SENTINEL_COLS]
 
-    numeric_pipeline = Pipeline(steps=numeric_steps)
+    numeric_pipeline = Pipeline(
+        steps=[
+            ("imputer", SimpleImputer(strategy="median")),
+        ]
+    )
 
     binary_pipeline = Pipeline(
         steps=[
@@ -173,7 +71,7 @@ def build_preprocessor(scale_numeric: bool = False) -> ColumnTransformer:
 
     preprocessor = ColumnTransformer(
         transformers=[
-            ("num", numeric_pipeline, NUMERIC_WITH_FLAGS),
+            ("num", numeric_pipeline, numeric_features),
             ("bin", binary_pipeline, BINARY_COLS),
             ("cat", categorical_pipeline, CATEGORICAL_COLS),
         ],
@@ -185,62 +83,126 @@ def build_preprocessor(scale_numeric: bool = False) -> ColumnTransformer:
 
 
 # ============================================================
-# Full pipeline
+# Training / evaluation
 # ============================================================
-def prepare_data(
-    df: pd.DataFrame,
-    test_size: float = 0.2,
-    random_state: int = 42,
-    scale_numeric: bool = False,
-):
+def choose_best_threshold(y_true, y_prob):
+    precision, recall, thresholds = precision_recall_curve(y_true, y_prob)
+    f1 = (2 * precision * recall) / (precision + recall + 1e-12)
+
+    # thresholds has length n-1; align by dropping last f1 point
+    best_idx = np.nanargmax(f1[:-1])
+    return thresholds[best_idx], f1[best_idx]
+
+
+def main():
+    # Load and clean
+    df = pd.read_csv(DATA_PATH)
     df = clean_baf_dataframe(df)
 
     X = df.drop(columns=[TARGET])
     y = df[TARGET].astype(int)
 
-    X_train, X_test, y_train, y_test = train_test_split(
+    # Train / valid / test split with stratification
+    X_temp, X_test, y_temp, y_test = train_test_split(
         X,
         y,
-        test_size=test_size,
-        random_state=random_state,
+        test_size=0.2,
+        random_state=RANDOM_STATE,
         stratify=y,
     )
 
-    preprocessor = build_preprocessor(scale_numeric=scale_numeric)
+    X_train, X_valid, y_train, y_valid = train_test_split(
+        X_temp,
+        y_temp,
+        test_size=0.2,
+        random_state=RANDOM_STATE,
+        stratify=y_temp,
+    )
 
+    # Preprocess
+    preprocessor = build_preprocessor()
     X_train_t = preprocessor.fit_transform(X_train)
+    X_valid_t = preprocessor.transform(X_valid)
     X_test_t = preprocessor.transform(X_test)
 
     feature_names = preprocessor.get_feature_names_out()
 
     X_train_t = pd.DataFrame(X_train_t, columns=feature_names, index=X_train.index)
+    X_valid_t = pd.DataFrame(X_valid_t, columns=feature_names, index=X_valid.index)
     X_test_t = pd.DataFrame(X_test_t, columns=feature_names, index=X_test.index)
 
-    return X_train_t, X_test_t, y_train, y_test, preprocessor
+    # Imbalance ratio for XGBoost
+    neg = (y_train == 0).sum()
+    pos = (y_train == 1).sum()
+    scale_pos_weight = neg / max(pos, 1)
 
+    print(f"Train negatives: {neg}")
+    print(f"Train positives: {pos}")
+    print(f"scale_pos_weight: {scale_pos_weight:.4f}")
 
-# ============================================================
-# Example usage
-# ============================================================
-if __name__ == "__main__":
-    df = pd.read_csv(DATA_PATH)
-
-    X_train_t, X_test_t, y_train, y_test, preprocessor = prepare_data(
-        df,
-        test_size=0.2,
-        random_state=42,
-        scale_numeric=False,   # set True for Logistic Regression / SVM
+    # XGBoost model
+    model = XGBClassifier(
+        n_estimators=2000,
+        learning_rate=0.03,
+        max_depth=6,
+        min_child_weight=5,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        reg_alpha=0.0,
+        reg_lambda=1.0,
+        scale_pos_weight=scale_pos_weight,
+        objective="binary:logistic",
+        eval_metric="aucpr",
+        tree_method="hist",
+        random_state=RANDOM_STATE,
+        n_jobs=-1,
     )
 
-    print("X_train shape:", X_train_t.shape)
-    print("X_test shape:", X_test_t.shape)
-    print("Train fraud rate:", y_train.mean())
-    print("Test fraud rate:", y_test.mean())
+    model.fit(
+        X_train_t,
+        y_train,
+        eval_set=[(X_valid_t, y_valid)],
+        verbose=100,
+        early_stopping_rounds=100,
+    )
 
-    # Save transformed data
+    # Validation evaluation
+    valid_prob = model.predict_proba(X_valid_t)[:, 1]
+    valid_roc = roc_auc_score(y_valid, valid_prob)
+    valid_pr = average_precision_score(y_valid, valid_prob)
+    best_thr, best_f1 = choose_best_threshold(y_valid, valid_prob)
+
+    print("\nValidation metrics")
+    print(f"ROC-AUC:  {valid_roc:.6f}")
+    print(f"PR-AUC:   {valid_pr:.6f}")
+    print(f"Best threshold by F1: {best_thr:.6f}")
+    print(f"Best F1 on validation: {best_f1:.6f}")
+
+    # Final test evaluation using validation-selected threshold
+    test_prob = model.predict_proba(X_test_t)[:, 1]
+    test_pred = (test_prob >= best_thr).astype(int)
+
+    test_roc = roc_auc_score(y_test, test_prob)
+    test_pr = average_precision_score(y_test, test_prob)
+
+    print("\nTest metrics")
+    print(f"ROC-AUC:  {test_roc:.6f}")
+    print(f"PR-AUC:   {test_pr:.6f}")
+    print("\nConfusion matrix:")
+    print(confusion_matrix(y_test, test_pred))
+    print("\nClassification report:")
+    print(classification_report(y_test, test_pred, digits=6))
+
+    # Optional: save artifacts
     X_train_t.to_csv("X_train_transformed.csv", index=False)
+    X_valid_t.to_csv("X_valid_transformed.csv", index=False)
     X_test_t.to_csv("X_test_transformed.csv", index=False)
-    y_train.to_csv("y_train.csv", index=False)
-    y_test.to_csv("y_test.csv", index=False)
+    pd.Series(y_train, name=TARGET).to_csv("y_train.csv", index=False)
+    pd.Series(y_valid, name=TARGET).to_csv("y_valid.csv", index=False)
+    pd.Series(y_test, name=TARGET).to_csv("y_test.csv", index=False)
 
-    print("Saved transformed datasets.")
+    print("\nSaved transformed datasets.")
+
+
+if __name__ == "__main__":
+    main()
