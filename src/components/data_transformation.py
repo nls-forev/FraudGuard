@@ -165,27 +165,38 @@ class DataTransformation:
         preprocessor = self.build_preprocessor()
         logging.info("Created preprocessor object.")
 
-        X_train_transformed = preprocessor.fit_transform(X_train)
-        X_test_transformed = preprocessor.transform(X_test)
+        X_train_transformed = np.asarray(preprocessor.fit_transform(X_train))
+        X_test_transformed = np.asarray(preprocessor.transform(X_test))
         logging.info("Transformed train and test feature matrices.")
 
-        train_arr = np.c_[X_train_transformed, np.array(y_train)]
-        test_arr = np.c_[X_test_transformed, np.array(y_test)]
-        logging.info("Concatenated transformed X and y arrays.")
-
         save_object(
-            self.data_transformation_config.preprocessor_file_path, preprocessor
+            self.data_transformation_config.preprocessor_file_path,
+            preprocessor,
+        )
+
+        save_numpy_array_data(
+            self.data_transformation_config.transformed_x_train_file_path,
+            array=X_train_transformed,
         )
         save_numpy_array_data(
-            self.data_transformation_config.transformed_train_file_path, array=train_arr
+            self.data_transformation_config.transformed_y_train_file_path,
+            array=np.array(y_train),
         )
         save_numpy_array_data(
-            self.data_transformation_config.transformed_test_file_path, array=test_arr
+            self.data_transformation_config.transformed_x_test_file_path,
+            array=X_test_transformed,
         )
-        logging.info("Saved transformation object and transformed arrays.")
+        save_numpy_array_data(
+            self.data_transformation_config.transformed_y_test_file_path,
+            array=np.array(y_test),
+        )
+
+        logging.info("Saved preprocessor, X_train, y_train, X_test and y_test arrays.")
 
         return DataTransformationArtifact(
             transformed_preprocessor_file_path=self.data_transformation_config.preprocessor_file_path,
-            transformed_train_file_path=self.data_transformation_config.transformed_train_file_path,
-            transformed_test_file_path=self.data_transformation_config.transformed_test_file_path,
+            transformed_x_train_file_path=self.data_transformation_config.transformed_x_train_file_path,
+            transformed_y_train_file_path=self.data_transformation_config.transformed_y_train_file_path,
+            transformed_x_test_file_path=self.data_transformation_config.transformed_x_test_file_path,
+            transformed_y_test_file_path=self.data_transformation_config.transformed_y_test_file_path,
         )

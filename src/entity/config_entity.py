@@ -23,6 +23,13 @@ from src.constants import (
     DATA_TRANSFORMATION_TRANSFORMED_DIR,
     DATA_TRANSFORMATION_PREPROCESSOR_DIR,
     PREPROCESSOR_FILE_NAME,
+    MODEL_TRAINER_DIR,
+    MODEL_TRAINER_TRAINED_MODEL_DIR,
+    MODEL_FILE_NAME,
+    MODEL_EVALUATION_DIR,
+    MODEL_TAR_FILE_NAME,
+    MODEL_TRAINER_METRICS_FILE_PATH,
+    MODEL_TRAINER_METRICS_DIR,
 )
 
 TIMESTAMP: str = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
@@ -146,20 +153,65 @@ class DataTransformationConfig:
         DATA_TRANSFORMATION_DIR,
     )
 
-    transformed_train_file_path: str = os.path.join(
+    transformed_x_train_file_path: str = os.path.join(
         data_transformation_dir,
         DATA_TRANSFORMATION_TRANSFORMED_DIR,
-        TRAIN_FILE_NAME.replace("csv", "npy"),
+        "x_train.npy",
     )
 
-    transformed_test_file_path: str = os.path.join(
+    transformed_y_train_file_path: str = os.path.join(
         data_transformation_dir,
         DATA_TRANSFORMATION_TRANSFORMED_DIR,
-        TEST_FILE_NAME.replace("csv", "npy"),
+        "y_train.npy",
+    )
+
+    transformed_x_test_file_path: str = os.path.join(
+        data_transformation_dir,
+        DATA_TRANSFORMATION_TRANSFORMED_DIR,
+        "x_test.npy",
+    )
+
+    transformed_y_test_file_path: str = os.path.join(
+        data_transformation_dir,
+        DATA_TRANSFORMATION_TRANSFORMED_DIR,
+        "y_test.npy",
     )
 
     preprocessor_file_path: str = os.path.join(
         data_transformation_dir,
         DATA_TRANSFORMATION_PREPROCESSOR_DIR,
         PREPROCESSOR_FILE_NAME,
+    )
+
+
+@dataclass
+class ModelTrainerConfig:
+    model_trainer_dir: str = os.path.join(
+        training_pipeline_config.artifact_dir, MODEL_TRAINER_DIR
+    )
+
+    model_trainer_file_path = os.path.join(
+        model_trainer_dir,
+        MODEL_TRAINER_TRAINED_MODEL_DIR,
+        MODEL_FILE_NAME,
+    )
+
+    model_trainer_tar_file_path: str = os.path.join(
+        model_trainer_dir,
+        MODEL_TRAINER_TRAINED_MODEL_DIR,
+        MODEL_TAR_FILE_NAME,
+    )
+
+
+@dataclass
+class ModelEvaluationConfig:
+    model_evaluation_dir: str = os.path.join(
+        training_pipeline_config.artifact_dir,
+        MODEL_EVALUATION_DIR,
+    )
+
+    model_evaluation_metrics_file_path: str = os.path.join(
+        model_evaluation_dir,
+        MODEL_TRAINER_METRICS_DIR,
+        MODEL_TRAINER_METRICS_FILE_PATH,
     )
