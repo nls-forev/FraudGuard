@@ -206,6 +206,12 @@ class ModelTrainerConfig:
         MODEL_TAR_FILE_NAME,
     )
 
+    model_trainer_preprocessor_file_path: str = os.path.join(
+        model_trainer_dir,
+        MODEL_TRAINER_TRAINED_MODEL_DIR,
+        PREPROCESSOR_FILE_NAME,
+    )
+
 
 @dataclass
 class ModelEvaluationConfig:

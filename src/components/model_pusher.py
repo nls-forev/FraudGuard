@@ -7,6 +7,7 @@ from src.data_access.aws_sagemaker import BucketOperations
 from src.constants import (
     CHAMPION_METRIC_PATH,
     CHAMPION_MODEL_PATH,
+    CHAMPION_PREPROCESSOR_PATH,
     SAGEMAKER_MODEL_NAME_PREFIX,
 )
 from src.entity.artifact_entity import (
@@ -40,7 +41,13 @@ class ModelPusher:
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.s3_model_key = CHAMPION_MODEL_PATH.format(timestamp=self.timestamp)
         self.s3_metric_key = CHAMPION_METRIC_PATH.format(timestamp=self.timestamp)
+        self.s3_preprocessor_key = CHAMPION_PREPROCESSOR_PATH.format(
+            timestamp=self.timestamp
+        )
         self.tar_output_path = model_trainer_artifact.model_trainer_tar_file_path
+        self.preprocessor_path = (
+            model_trainer_artifact.model_trainer_preprocessor_file_path
+        )
 
     def compress_model(self):
         try:
@@ -91,6 +98,12 @@ class ModelPusher:
                 self.tar_output_path,
                 self.s3_model_key,
             )
+
+            preprocessor_url = self.bucket_ops.upload_preprocessor_artifact(
+                self.preprocessor_path,
+                self.s3_preprocessor_key,
+            )
+
             self.bucket_ops.upload_metrics_artifact(
                 challenger_metrics,
                 self.s3_metric_key,
@@ -113,6 +126,7 @@ class ModelPusher:
                         "s3_model_key": self.s3_model_key,
                         "s3_metric_key": self.s3_metric_key,
                         "model_url": model_url,
+                        "preprocessor_url": preprocessor_url,
                     },
                     f,
                     indent=4,

@@ -84,6 +84,23 @@ class BucketOperations:
         except Exception as e:
             raise e
 
+    def upload_preprocessor_artifact(
+        self, file_path: str, s3_preprocessor_key: str
+    ) -> str:
+        try:
+            logging.info(
+                f"Pusher streaming preprocessor to S3 path: s3://{BUCKET_NAME}/{s3_preprocessor_key}"
+            )
+            self.s3_client.upload_file(file_path, BUCKET_NAME, s3_preprocessor_key)
+
+            preprocessor_url = f"s3://{BUCKET_NAME}/{s3_preprocessor_key}"
+            logging.info(f"Model uploaded to path: {preprocessor_url}")
+
+            return preprocessor_url
+
+        except Exception as e:
+            raise e
+
     def promote_champion_artifacts(self, file_path: str, metrics: dict) -> None:
         try:
             logging.info("Promoting challenger artifacts to champion paths in S3...")
