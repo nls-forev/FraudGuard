@@ -36,8 +36,8 @@ class DataValidation:
 
     def validate_existence_of_columns(self, df: pd.DataFrame) -> bool:
         try:
-            expected = set(df.columns)
-            actual = set(self._scheme_config["columns"])
+            expected = set(self._scheme_config["columns"])
+            actual = set(df.columns)
 
             missing = expected - actual
             extra = actual - expected
@@ -94,7 +94,7 @@ class DataValidation:
         )
         test_df = DataValidation.read_data(self.data_ingestion_artifact.test_file_path)
 
-        logging.info("Successfully loadded train and test dataframes")
+        logging.info("Successfully loaded train and test dataframes")
         logging.debug(
             f"Train and test dataframe shape: {train_df.shape}, {test_df.shape}"
         )
@@ -124,17 +124,20 @@ class DataValidation:
                 "Successfully passed validation of all columns present in testing dataframe"
             )
 
-        logging.info("Initiating schema validation of training dataframe.")
-        train_status = self.validation_schema(train_df)
+        if train_status and test_status:
+            logging.info("Initiating schema validation of training dataframe.")
+            self.validation_schema(train_df)
+            logging.info(
+                "Successfully finished schema validation of training dataframe."
+            )
 
-        logging.info("Successfully finished schema validation of training dataframe.")
+            logging.info("Initiating schema validation of testing dataframe.")
+            self.validation_schema(test_df)
+            logging.info(
+                "Successfully finished schema validation of testing dataframe."
+            )
 
-        logging.info("Initiating schema validation of testing dataframe.")
-        test_status = self.validation_schema(train_df)
-
-        logging.info("Successfully finished schema validation of testing dataframe.")
-
-        validation_status = len(validation_msg) == 0
+        validation_status = len(validation_msg) == 0 and train_status and test_status
         logging.debug(f"Validation status: {validation_status}")
 
         data_validation_artifact = DataValidationArtifact(

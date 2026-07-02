@@ -100,7 +100,11 @@ class ModelEvaluation:
                 {"input": x_test.astype("float32")},
             )[0]
 
-            return np.asarray(y_pred)
+            y_pred = np.asarray(y_pred)
+            if np.issubdtype(y_pred.dtype, np.floating):
+                y_pred = (y_pred >= 0.5).astype(int)
+
+            return y_pred
 
         except Exception as e:
             raise e

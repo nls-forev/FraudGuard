@@ -30,6 +30,10 @@ from src.constants import (
     MODEL_TAR_FILE_NAME,
     MODEL_TRAINER_METRICS_FILE_PATH,
     MODEL_TRAINER_METRICS_DIR,
+    MODEL_COMPARE_DIR,
+    MODEL_COMPARE_DECISION_DIR,
+    MODEL_COMPARE_DECISION_FILE_PATH,
+    MODEL_PUSHER_DIR,
 )
 
 TIMESTAMP: str = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
@@ -214,4 +218,26 @@ class ModelEvaluationConfig:
         model_evaluation_dir,
         MODEL_TRAINER_METRICS_DIR,
         MODEL_TRAINER_METRICS_FILE_PATH,
+    )
+
+
+@dataclass
+class ModelCompareConfig:
+    model_compare_dir: str = os.path.join(
+        training_pipeline_config.artifact_dir,
+        MODEL_COMPARE_DIR,
+    )
+
+    model_compare_decision_file_path: str = os.path.join(
+        model_compare_dir,
+        MODEL_COMPARE_DECISION_DIR,
+        MODEL_COMPARE_DECISION_FILE_PATH,
+    )
+
+
+@dataclass
+class ModelPusherConfig:
+    model_pusher_dir: str = os.path.join(
+        training_pipeline_config.artifact_dir,
+        MODEL_PUSHER_DIR,
     )

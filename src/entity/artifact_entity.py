@@ -36,3 +36,17 @@ class ModelEvaluationArtifact:
     precision_score: float
     recall_score: float
     model_evaluation_metrics_file_path: str
+
+
+@dataclass
+class ModelCompareArtifact:
+    push_to_production: bool
+    model_compare_decision_file_path: str
+
+
+@dataclass
+class ModelPusherArtifact:
+    model_package_arn: str
+    model_name: str
+    s3_model_uri: str
+    s3_metric_key: str
