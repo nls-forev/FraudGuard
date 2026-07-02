@@ -84,6 +84,25 @@ class DataValidation:
 
             raise
 
+    def write_success_report(
+        self, train_df: pd.DataFrame, test_df: pd.DataFrame
+    ) -> None:
+        report = pd.DataFrame(
+            [
+                {"dataframe": "train", "rows": len(train_df), "status": "passed"},
+                {"dataframe": "test", "rows": len(test_df), "status": "passed"},
+            ]
+        )
+
+        dir_name = os.path.dirname(self.data_validation_config.data_validation_report)
+        os.makedirs(dir_name, exist_ok=True)
+
+        report.to_csv(self.data_validation_config.data_validation_report, index=False)
+
+        logging.info(
+            f"Validation report saved to {self.data_validation_config.data_validation_report}",
+        )
+
     def init_data_validation(self) -> DataValidationArtifact:
         validation_msg = ""
 
@@ -139,6 +158,9 @@ class DataValidation:
 
         validation_status = len(validation_msg) == 0 and train_status and test_status
         logging.debug(f"Validation status: {validation_status}")
+
+        if validation_status:
+            self.write_success_report(train_df, test_df)
 
         data_validation_artifact = DataValidationArtifact(
             validation_report_path=self.data_validation_config.data_validation_report,

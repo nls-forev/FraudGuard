@@ -1,0 +1,162 @@
+schema: '2.0'
+stages:
+  ingest:
+    cmd: uv run python -m src.pipeline.run_stage ingest
+    deps:
+    - path: data/raw.parquet
+      hash: md5
+      md5: e9c8edc4614a6fb74f750a8c0874ea12
+      size: 22629479
+      isexec: true
+    - path: src/components/data_ingestion.py
+      hash: md5
+      md5: c5a85242a62e622f80c1282e8ce27d38
+      size: 2517
+      isexec: true
+    outs:
+    - path: artifact/data_ingestion/ingested
+      hash: md5
+      md5: 75662fda2ae24e6391d54815ad381752.dir
+      size: 67394103
+      nfiles: 2
+  validate:
+    cmd: uv run python -m src.pipeline.run_stage validate
+    deps:
+    - path: artifact/data_ingestion/ingested
+      hash: md5
+      md5: 75662fda2ae24e6391d54815ad381752.dir
+      size: 67394103
+      nfiles: 2
+    - path: config/schema.yaml
+      hash: md5
+      md5: 11bbadb2a492ebf6ce1652a12f478832
+      size: 1844
+      isexec: true
+    - path: src/components/data_validation.py
+      hash: md5
+      md5: 2888bd1fa51088c2e8931484b59965a2
+      size: 5409
+      isexec: true
+    outs:
+    - path: artifact/data_validation/data_validation_report.csv
+      hash: md5
+      md5: e75cd047cc27b0622fadc6dae6a2d4a8
+      size: 60
+      isexec: true
+  transform:
+    cmd: uv run python -m src.pipeline.run_stage transform
+    deps:
+    - path: artifact/data_ingestion/ingested
+      hash: md5
+      md5: 75662fda2ae24e6391d54815ad381752.dir
+      size: 67394103
+      nfiles: 2
+    - path: artifact/data_validation/data_validation_report.csv
+      hash: md5
+      md5: e75cd047cc27b0622fadc6dae6a2d4a8
+      size: 60
+      isexec: true
+    - path: config/schema.yaml
+      hash: md5
+      md5: 11bbadb2a492ebf6ce1652a12f478832
+      size: 1844
+      isexec: true
+    - path: src/components/data_transformation.py
+      hash: md5
+      md5: 937b9098c2e53d161f1c1ccb9271cba4
+      size: 7242
+      isexec: true
+    outs:
+    - path: artifact/data_transformation/preprocessor
+      hash: md5
+      md5: 1258e83e1aaa47bb341b09b7792f3492.dir
+      size: 5030
+      nfiles: 1
+    - path: artifact/data_transformation/transformed
+      hash: md5
+      md5: c0f6993e2c8912dddc22c2462283a72b.dir
+      size: 156800512
+      nfiles: 4
+  train:
+    cmd: uv run python -m src.pipeline.run_stage train
+    deps:
+    - path: artifact/data_transformation/transformed
+      hash: md5
+      md5: c0f6993e2c8912dddc22c2462283a72b.dir
+      size: 156800512
+      nfiles: 4
+    - path: src/components/model_trainer.py
+      hash: md5
+      md5: 82768d6a1f09abf584547d296c877b38
+      size: 3465
+      isexec: true
+    params:
+      config/hyperparams.yaml:
+        model:
+          type: XGBClassifier
+        params:
+          objective: binary:logistic
+          eval_metric: aucpr
+          tree_method: hist
+          n_estimators: 1500
+          learning_rate: 0.02
+          max_depth: 5
+          min_child_weight: 20
+          subsample: 0.85
+          colsample_bytree: 0.75
+          gamma: 1.0
+          reg_alpha: 0.3
+          reg_lambda: 3.0
+          scale_pos_weight: 90
+          max_bin: 256
+          random_state: 42
+          n_jobs: -1
+    outs:
+    - path: artifact/model_trainer/trained_model
+      hash: md5
+      md5: 9ddafde3f94cd6b00830d2d1fdd115f9.dir
+      size: 2956407
+      nfiles: 2
+  evaluate:
+    cmd: uv run python -m src.pipeline.run_stage evaluate
+    deps:
+    - path: artifact/data_transformation/transformed
+      hash: md5
+      md5: c0f6993e2c8912dddc22c2462283a72b.dir
+      size: 156800512
+      nfiles: 4
+    - path: artifact/model_trainer/trained_model
+      hash: md5
+      md5: 9ddafde3f94cd6b00830d2d1fdd115f9.dir
+      size: 2956407
+      nfiles: 2
+    - path: src/components/model_evaluation.py
+      hash: md5
+      md5: 4dbe302f07008395973bc65d710b955a
+      size: 3890
+      isexec: true
+    outs:
+    - path: artifact/model_evaluation/metrics/metrics.json
+      hash: md5
+      md5: dc988f4b26d29d841dc526d34c6c0ad0
+      size: 129
+      isexec: true
+  compare:
+    cmd: uv run python -m src.pipeline.run_stage compare
+    deps:
+    - path: artifact/model_evaluation/metrics/metrics.json
+      hash: md5
+      md5: dc988f4b26d29d841dc526d34c6c0ad0
+      size: 129
+      isexec: true
+    - path: src/components/model_compare.py
+      hash: md5
+      md5: 0e0348ffdc62a55adf95dfbdea2bae2b
+      size: 2877
+      isexec: true
+    outs:
+    - path: artifact/model_compare/comparison/comparison_result.json
+      hash: md5
+      md5: fa3cfcd7f7a0f609ab94ce9654f663a7
+      size: 35
+      isexec: true

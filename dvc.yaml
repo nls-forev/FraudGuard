@@ -1,0 +1,58 @@
+stages:
+  ingest:
+    cmd: uv run python -m src.pipeline.run_stage ingest
+    deps:
+      - data/raw.parquet
+      - src/components/data_ingestion.py
+    outs:
+      - artifact/data_ingestion/ingested
+
+  validate:
+    cmd: uv run python -m src.pipeline.run_stage validate
+    deps:
+      - artifact/data_ingestion/ingested
+      - config/schema.yaml
+      - src/components/data_validation.py
+    outs:
+      - artifact/data_validation/data_validation_report.csv:
+          cache: false
+
+  transform:
+    cmd: uv run python -m src.pipeline.run_stage transform
+    deps:
+      - artifact/data_ingestion/ingested
+      - artifact/data_validation/data_validation_report.csv
+      - config/schema.yaml
+      - src/components/data_transformation.py
+    outs:
+      - artifact/data_transformation/transformed
+      - artifact/data_transformation/preprocessor
+
+  train:
+    cmd: uv run python -m src.pipeline.run_stage train
+    deps:
+      - artifact/data_transformation/transformed
+      - src/components/model_trainer.py
+    params:
+      - config/hyperparams.yaml:
+    outs:
+      - artifact/model_trainer/trained_model
+
+  evaluate:
+    cmd: uv run python -m src.pipeline.run_stage evaluate
+    deps:
+      - artifact/model_trainer/trained_model
+      - artifact/data_transformation/transformed
+      - src/components/model_evaluation.py
+    metrics:
+      - artifact/model_evaluation/metrics/metrics.json:
+          cache: false
+
+  compare:
+    cmd: uv run python -m src.pipeline.run_stage compare
+    deps:
+      - artifact/model_evaluation/metrics/metrics.json
+      - src/components/model_compare.py
+    outs:
+      - artifact/model_compare/comparison/comparison_result.json:
+          cache: false

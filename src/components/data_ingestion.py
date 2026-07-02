@@ -6,11 +6,10 @@ from sklearn.model_selection import train_test_split
 from src.logger import logging
 from src.entity.config_entity import DataIngestionConfig
 from src.entity.artifact_entity import DataIngestionArtifact
-from src.data_access.fraudguard_data import FraudGuardData
 from src.constants import (
-    COLLECTION_NAME,
     DATA_INGESTION_TRAIN_TEST_SPLIT_RATIO,
     RANDOM_STATE,
+    RAW_DATA_PATH,
 )
 
 
@@ -20,19 +19,17 @@ class DataIngestion:
     ):
         self.data_ingestion_config = data_ingestion_config
 
-    def export_data_as_feature_store(self) -> pd.DataFrame:
+    def read_raw_data(self) -> pd.DataFrame:
+        """Read the DVC-tracked snapshot produced by src.pipeline.refresh_data.
+
+        The pipeline never reads MongoDB directly so that every run is
+        reproducible from the versioned snapshot alone.
+        """
         try:
-            logging.info("Exporting dataframe from mongoDB")
-            df = FraudGuardData().export_collection_as_dataframe(COLLECTION_NAME)
+            logging.info(f"Reading raw data snapshot: {RAW_DATA_PATH}")
+            df = pd.read_parquet(RAW_DATA_PATH)
 
             logging.info(f"Shape of dataframe: {df.shape}")
-
-            feature_store_file_path = self.data_ingestion_config.feature_store_file
-            dir_path = os.path.dirname(feature_store_file_path)
-            os.makedirs(dir_path, exist_ok=True)
-
-            df.to_csv(feature_store_file_path, index=False, header=True)
-            logging.info(f"Saved Exported data: {feature_store_file_path}")
 
             return df
 
@@ -66,7 +63,7 @@ class DataIngestion:
     def init_data_ingestion(self) -> DataIngestionArtifact:
         logging.info("Initiating Data ingestion.")
 
-        df = self.export_data_as_feature_store()
+        df = self.read_raw_data()
         self.split_train_test_split(df)
 
         logging.info("Exiting Data ingestion step.")

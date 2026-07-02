@@ -23,6 +23,7 @@ COLLECTION_NAME = "fraudguard-data"
 # Training Data Config
 PIPELINE_NAME = "fraudguard"
 ARTIFACT_DIR = "artifact"
+RAW_DATA_PATH = "data/raw.parquet"
 
 # Files
 FILE_NAME = "data.csv"
