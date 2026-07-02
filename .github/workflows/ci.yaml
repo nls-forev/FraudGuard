@@ -1,4 +1,4 @@
-name: CI/CD
+name: Continuous Integration
 
 on:
   push:
@@ -27,6 +27,4 @@ jobs:
 
       - name: Detect Secrets
         run: |
-          detect-secrets scan \
-            --baseline .secrets.baseline \
-            --exclude-files '.*\.dvc$'
+          git ls-files -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline

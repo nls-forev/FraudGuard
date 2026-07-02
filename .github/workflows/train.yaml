@@ -1,0 +1,51 @@
+name: Train
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "config/**"
+      - "dvc.yaml"
+      - "data/*.dvc"
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - run: uv run dvc pull
+      - run: uv run dvc repro
+
+      - run: uv run dvc push
+
+      - name: Commit updated dvc.lock
+        run: |
+          if ! git diff --quiet dvc.lock; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add dvc.lock
+            git commit -m "ci: update dvc.lock after pipeline run"
+            git push
+          fi
+
+      - name: Promote if challenger wins
+        run: |
+          if [ "$(uv run python -c "import json; print(json.load(open('artifact/model_compare/comparison/comparison_result.json'))['push_to_production'])")" = "True" ]; then
+            uv run python -m src.pipeline.run_stage push
+          fi
