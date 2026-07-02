@@ -80,6 +80,11 @@ stages:
   train:
     cmd: uv run python -m src.pipeline.run_stage train
     deps:
+    - path: artifact/data_transformation/preprocessor
+      hash: md5
+      md5: 1258e83e1aaa47bb341b09b7792f3492.dir
+      size: 5030
+      nfiles: 1
     - path: artifact/data_transformation/transformed
       hash: md5
       md5: c0f6993e2c8912dddc22c2462283a72b.dir
@@ -87,8 +92,8 @@ stages:
       nfiles: 4
     - path: src/components/model_trainer.py
       hash: md5
-      md5: 82768d6a1f09abf584547d296c877b38
-      size: 3465
+      md5: 2680f646b5de9640fcb409c9010cde5b
+      size: 3858
       isexec: true
     params:
       config/hyperparams.yaml:
@@ -114,9 +119,9 @@ stages:
     outs:
     - path: artifact/model_trainer/trained_model
       hash: md5
-      md5: 9ddafde3f94cd6b00830d2d1fdd115f9.dir
-      size: 2956407
-      nfiles: 2
+      md5: 551cf457b982459040f0aa5bf11ef7e3.dir
+      size: 2961437
+      nfiles: 3
   evaluate:
     cmd: uv run python -m src.pipeline.run_stage evaluate
     deps:
@@ -127,9 +132,9 @@ stages:
       nfiles: 4
     - path: artifact/model_trainer/trained_model
       hash: md5
-      md5: 9ddafde3f94cd6b00830d2d1fdd115f9.dir
-      size: 2956407
-      nfiles: 2
+      md5: 551cf457b982459040f0aa5bf11ef7e3.dir
+      size: 2961437
+      nfiles: 3
     - path: src/components/model_evaluation.py
       hash: md5
       md5: 4dbe302f07008395973bc65d710b955a

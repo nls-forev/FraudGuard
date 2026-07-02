@@ -58,6 +58,7 @@ def trainer_artifact() -> ModelTrainerArtifact:
     return ModelTrainerArtifact(
         model_trainer_file_path=config.model_trainer_file_path,
         model_trainer_tar_file_path=config.model_trainer_tar_file_path,
+        model_trainer_preprocessor_file_path=config.model_trainer_preprocessor_file_path,
     )
 
 

@@ -111,6 +111,7 @@ class ModelPusher:
             self.bucket_ops.promote_champion_artifacts(
                 self.tar_output_path,
                 challenger_metrics,
+                self.preprocessor_path,
             )
 
             os.makedirs(self.model_pusher_config.model_pusher_dir, exist_ok=True)

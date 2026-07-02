@@ -1,4 +1,6 @@
 import os
+import shutil
+
 import numpy as np
 
 from xgboost import XGBClassifier
@@ -115,6 +117,13 @@ class ModelTrainer:
         )
 
         logging.info("Saved onnx model in tar format.")
+
+        shutil.copy(
+            self.data_transformation_artifact.transformed_preprocessor_file_path,
+            self.model_trainer_config.model_trainer_preprocessor_file_path,
+        )
+
+        logging.info("Copied preprocessor into trained model directory.")
 
         model_trainer_artifact = ModelTrainerArtifact(
             model_trainer_file_path=self.model_trainer_config.model_trainer_file_path,

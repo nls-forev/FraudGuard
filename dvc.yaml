@@ -32,6 +32,7 @@ stages:
     cmd: uv run python -m src.pipeline.run_stage train
     deps:
       - artifact/data_transformation/transformed
+      - artifact/data_transformation/preprocessor
       - src/components/model_trainer.py
     params:
       - config/hyperparams.yaml:

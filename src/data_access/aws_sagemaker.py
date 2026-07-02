@@ -10,6 +10,7 @@ from src.constants import (
     BUCKET_NAME,
     CHAMPION_LATEST_METRIC_PATH,
     CHAMPION_LATEST_MODEL_PATH,
+    CHAMPION_LATEST_PREPROCESSOR_PATH,
     MODEL_PACKAGE_GROUP_NAME,
     SAGEMAKER_INSTANCE_TYPE,
     SAGEMAKER_ROLE_ARN,
@@ -94,18 +95,23 @@ class BucketOperations:
             self.s3_client.upload_file(file_path, BUCKET_NAME, s3_preprocessor_key)
 
             preprocessor_url = f"s3://{BUCKET_NAME}/{s3_preprocessor_key}"
-            logging.info(f"Model uploaded to path: {preprocessor_url}")
+            logging.info(f"Preprocessor uploaded to path: {preprocessor_url}")
 
             return preprocessor_url
 
         except Exception as e:
             raise e
 
-    def promote_champion_artifacts(self, file_path: str, metrics: dict) -> None:
+    def promote_champion_artifacts(
+        self, file_path: str, metrics: dict, preprocessor_path: str
+    ) -> None:
         try:
             logging.info("Promoting challenger artifacts to champion paths in S3...")
             self.upload_model_artifact(file_path, CHAMPION_LATEST_MODEL_PATH)
             self.upload_metrics_artifact(metrics, CHAMPION_LATEST_METRIC_PATH)
+            self.upload_preprocessor_artifact(
+                preprocessor_path, CHAMPION_LATEST_PREPROCESSOR_PATH
+            )
 
         except Exception as e:
             raise e
