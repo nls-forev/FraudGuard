@@ -119,6 +119,7 @@ class ModelTrainer:
         model_trainer_artifact = ModelTrainerArtifact(
             model_trainer_file_path=self.model_trainer_config.model_trainer_file_path,
             model_trainer_tar_file_path=self.model_trainer_config.model_trainer_tar_file_path,
+            model_trainer_preprocessor_file_path=self.model_trainer_config.model_trainer_preprocessor_file_path,
         )
 
         return model_trainer_artifact
