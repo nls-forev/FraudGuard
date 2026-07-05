@@ -43,6 +43,11 @@ def convert_to_tar(src_file_path: str, dest_file_path: str):
         raise e
 
 
+def extract_tar(local_path_model, extract_dir: str):
+    with tarfile.open(local_path_model, "r:gz") as tar:
+        tar.extractall(path=extract_dir, filter="data")
+
+
 def load_object(file_path: str) -> object:
     """
     Returns model/object from project directory.

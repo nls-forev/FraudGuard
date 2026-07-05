@@ -51,3 +51,10 @@ class ModelPusherArtifact:
     model_name: str
     s3_model_uri: str
     s3_metric_key: str
+
+
+@dataclass
+class ChampionBundle:
+    model: object
+    preprocessor: object
+    metrics: dict

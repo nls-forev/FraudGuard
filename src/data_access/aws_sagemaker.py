@@ -1,10 +1,16 @@
 import json
-
+import tempfile
 import boto3
+
+from src.logger import logging
+
+from pathlib import Path
+
 from sagemaker.core import image_uris
 from sagemaker.core.resources import Model, ModelPackage
 
-from src.logger import logging
+from botocore.exceptions import ClientError
+
 
 from src.constants import (
     BUCKET_NAME,
@@ -15,6 +21,9 @@ from src.constants import (
     SAGEMAKER_INSTANCE_TYPE,
     SAGEMAKER_ROLE_ARN,
     SAGEMAKER_TRITON_VERSION,
+    MODEL_TAR_FILE_NAME,
+    PREPROCESSOR_FILE_NAME,
+    MODEL_TRAINER_METRICS_FILE_PATH,
 )
 
 
@@ -22,6 +31,7 @@ class BucketOperations:
     def __init__(self):
         self.s3_client = boto3.client("s3")
         self.boto_session = boto3.Session()
+
         logging.info("Connected to S3 client.")
 
     def get_champion_metrics(self) -> dict:
@@ -49,6 +59,53 @@ class BucketOperations:
                 "Precision": 0.0,
                 "Recall": 0.0,
             }
+
+        except Exception as e:
+            raise e
+
+    def download_champion_artifacts(self):
+        try:
+            temp_dir = Path(tempfile.mkdtemp(prefix="fraudguard_champion_"))
+            local_path_model = temp_dir / MODEL_TAR_FILE_NAME
+            local_path_preprocessor = temp_dir / PREPROCESSOR_FILE_NAME
+            local_path_metrics = temp_dir / MODEL_TRAINER_METRICS_FILE_PATH
+
+            # Download model
+            self.s3_client.download_file(
+                Bucket=BUCKET_NAME,
+                Key=CHAMPION_LATEST_MODEL_PATH,
+                Filename=local_path_model,
+            )
+
+            logging.info(f"Downloaded champion model to {local_path_model}")
+
+            # Download preprocessor
+            self.s3_client.download_file(
+                Bucket=BUCKET_NAME,
+                Key=CHAMPION_LATEST_PREPROCESSOR_PATH,
+                Filename=local_path_preprocessor,
+            )
+
+            logging.info(f"Downloaded preprocessor to {local_path_preprocessor}")
+
+            # Download metrics
+            self.s3_client.download_file(
+                Bucket=BUCKET_NAME,
+                Key=CHAMPION_LATEST_METRIC_PATH,
+                Filename=local_path_metrics,
+            )
+
+            logging.info(f"Downloaded metrics to {local_path_metrics}")
+
+            return (
+                local_path_model,
+                local_path_preprocessor,
+                local_path_metrics,
+            )
+
+        except ClientError:
+            logging.error("Champion model not found in S3.")
+            raise
 
         except Exception as e:
             raise e

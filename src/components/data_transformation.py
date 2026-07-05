@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from src.logger import logging
+from src.utils.feature_engineering import clean_baf_dataframe
 
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
@@ -50,43 +51,7 @@ class DataTransformation:
             raise e
 
     def clean_baf_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
-        df = df.copy()
-
-        logging.info("Initializing cleaning and feature engineering.")
-
-        for col in self.CATEGORICAL_COLS:
-            if col in df.columns:
-                if col == "device_os":
-                    df[col] = df[col].astype(str).str.lower().str.strip()
-                else:
-                    df[col] = df[col].astype(str).str.upper().str.strip()
-
-        if self.TARGET in df.columns:
-            df[self.TARGET] = df[self.TARGET].astype(int)
-
-        for col in self.BINARY_COLS:
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
-
-        for col in self.SENTINEL_COLS:
-            if col in df.columns:
-                df[f"{col}_missing"] = (df[col] == -1).astype("Int64")
-
-        for col in self.SENTINEL_COLS:
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors="coerce")
-                df.loc[df[col] == -1, col] = np.nan
-
-        for col in self.NUMERIC_COLS:
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors="coerce")
-
-        for col in self.LOG1P_COLS:
-            if col in df.columns:
-                df[col] = np.log1p(df[col])
-
-        logging.info("Done cleaning and feature engineering.")
-        return df
+        return clean_baf_dataframe(df, self._schema)
 
     def build_preprocessor(self):
         logging.info("Creating preprocessing pipeline.")

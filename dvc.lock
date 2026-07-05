@@ -63,8 +63,8 @@ stages:
       isexec: true
     - path: src/components/data_transformation.py
       hash: md5
-      md5: 937b9098c2e53d161f1c1ccb9271cba4
-      size: 7242
+      md5: cc1564217194dea24acafc335f53df8e
+      size: 6052
       isexec: true
     outs:
     - path: artifact/data_transformation/preprocessor
