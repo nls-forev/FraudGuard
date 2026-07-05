@@ -31,18 +31,15 @@ stages:
       hash: md5
       md5: 11bbadb2a492ebf6ce1652a12f478832
       size: 1844
-      isexec: true
     - path: src/components/data_validation.py
       hash: md5
       md5: 2888bd1fa51088c2e8931484b59965a2
       size: 5409
-      isexec: true
     outs:
     - path: artifact/data_validation/data_validation_report.csv
       hash: md5
       md5: e75cd047cc27b0622fadc6dae6a2d4a8
       size: 60
-      isexec: true
   transform:
     cmd: uv run python -m src.pipeline.run_stage transform
     deps:
@@ -139,13 +136,11 @@ stages:
       hash: md5
       md5: 4dbe302f07008395973bc65d710b955a
       size: 3890
-      isexec: true
     outs:
     - path: artifact/model_evaluation/metrics/metrics.json
       hash: md5
       md5: dc988f4b26d29d841dc526d34c6c0ad0
       size: 129
-      isexec: true
   compare:
     cmd: uv run python -m src.pipeline.run_stage compare
     deps:
@@ -153,15 +148,12 @@ stages:
       hash: md5
       md5: dc988f4b26d29d841dc526d34c6c0ad0
       size: 129
-      isexec: true
     - path: src/components/model_compare.py
       hash: md5
       md5: 0e0348ffdc62a55adf95dfbdea2bae2b
       size: 2877
-      isexec: true
     outs:
     - path: artifact/model_compare/comparison/comparison_result.json
       hash: md5
       md5: fa3cfcd7f7a0f609ab94ce9654f663a7
       size: 35
-      isexec: true
