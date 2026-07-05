@@ -1,0 +1,14 @@
+.git
+.venv
+
+.dvc/cache
+__pycache__/
+
+*.pyc
+
+artifact/
+data/
+notebook/
+logs/
+.vscode/
+.cursor/

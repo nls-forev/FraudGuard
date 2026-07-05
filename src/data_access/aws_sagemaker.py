@@ -6,9 +6,6 @@ from src.logger import logging
 
 from pathlib import Path
 
-from sagemaker.core import image_uris
-from sagemaker.core.resources import Model, ModelPackage
-
 from botocore.exceptions import ClientError
 
 
@@ -175,6 +172,8 @@ class BucketOperations:
 
     def get_serving_image_uri(self) -> str:
         try:
+            from sagemaker.core import image_uris
+
             logging.info(
                 "Retrieving serving container URI using SageMaker v3 core framework..."
             )
@@ -200,8 +199,10 @@ class BucketOperations:
         model_name: str,
         model_url: str,
         serving_image_uri: str,
-    ) -> Model:
+    ):
         try:
+            from sagemaker.core.resources import Model
+
             logging.info(f"Creating SageMaker model resource: {model_name}")
 
             core_model = Model.create(
@@ -227,8 +228,10 @@ class BucketOperations:
         model_url: str,
         serving_image_uri: str,
         build_id: str,
-    ) -> ModelPackage:
+    ):
         try:
+            from sagemaker.core.resources import ModelPackage
+
             logging.info(
                 "Registering model group package to the Model Registry catalog..."
             )
