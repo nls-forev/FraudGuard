@@ -9,11 +9,9 @@ Production-grade MLOps system for bank account fraud detection — from raw data
 to a live API on AWS, with the full loop automated: **train → gate → deploy →
 monitor → detect drift → retrain**.
 
-The model itself is deliberately simple (XGBoost on the [Bank Account Fraud
+The model is XGBoost on the [Bank Account Fraud
 (NeurIPS 2022)](https://www.kaggle.com/datasets/sgpjesus/bank-account-fraud-dataset-neurips-2022)
-tabular dataset, exported to ONNX). The engineering around it is the point:
-every stage that a real fraud model needs to survive in production is built
-and wired together.
+tabular dataset, exported to ONNX.
 
 ## Architecture
 
