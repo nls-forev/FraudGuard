@@ -21,6 +21,8 @@ on:
 jobs:
   train:
     runs-on: ubuntu-latest
+    outputs:
+      promoted: ${{ steps.promote.outputs.promoted }}
     steps:
       - uses: actions/checkout@v5
 
@@ -50,7 +52,28 @@ jobs:
           fi
 
       - name: Promote if challenger wins
+        id: promote
         run: |
-          if [ "$(uv run python -c "import json; print(json.load(open('artifact/model_compare/comparison/comparison_result.json'))['push_to_production'])")" = "True" ]; then
+          RESULT=$(uv run python -c "import json; print(json.load(open('artifact/model_compare/comparison/comparison_result.json'))['push_to_production'])")
+          if [ "$RESULT" = "True" ]; then
             uv run python -m src.pipeline.run_stage push
+            echo "promoted=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "promoted=false" >> "$GITHUB_OUTPUT"
           fi
+
+  deploy:
+    needs: train
+    if: needs.train.outputs.promoted == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Restart ECS service to pick up new champion model
+        run: |
+          aws ecs update-service --cluster fraudguard-cluster \
+            --service fraudguard-service --force-new-deployment
