@@ -17,3 +17,8 @@ logs
 artifact
 
 *.ipynb
+
+# Drift detection outputs
+drift.flag
+drift_summary.json
+drift_report_*.html

@@ -16,7 +16,7 @@ from src.entity.artifact_entity import (
     ModelPusherArtifact,
     ModelTrainerArtifact,
 )
-from src.entity.config_entity import ModelPusherConfig
+from src.entity.config_entity import DataIngestionConfig, ModelPusherConfig
 from src.logger import logging
 from src.utils.main_utils import convert_to_tar
 
@@ -113,6 +113,17 @@ class ModelPusher:
                 challenger_metrics,
                 self.preprocessor_path,
             )
+
+            # Snapshot the held-out split this champion was evaluated on;
+            # drift monitoring diffs live traffic against it.
+            reference_path = DataIngestionConfig().testing_file
+            if os.path.exists(reference_path):
+                self.bucket_ops.upload_reference_data(reference_path)
+            else:
+                logging.warning(
+                    f"Reference snapshot missing at {reference_path}; "
+                    "drift monitoring will keep using the previous one."
+                )
 
             os.makedirs(self.model_pusher_config.model_pusher_dir, exist_ok=True)
             with open(
