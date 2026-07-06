@@ -1598,6 +1598,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "boto3" },
+    { name = "certifi" },
     { name = "dill" },
     { name = "evidently" },
     { name = "fastapi" },
@@ -1606,6 +1607,8 @@ dependencies = [
     { name = "numpy", version = "2.5.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "onnxruntime" },
     { name = "pandas" },
+    { name = "pymongo" },
+    { name = "python-dotenv" },
     { name = "redis" },
     { name = "scikit-learn" },
     { name = "uvicorn", extra = ["standard"] },
@@ -1624,7 +1627,6 @@ training = [
     { name = "onnxmltools" },
     { name = "pandera" },
     { name = "pyarrow" },
-    { name = "pymongo" },
     { name = "sagemaker" },
     { name = "xgboost", version = "3.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "xgboost", version = "3.3.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
@@ -1633,6 +1635,7 @@ training = [
 [package.metadata]
 requires-dist = [
     { name = "boto3", specifier = ">=1.43.0" },
+    { name = "certifi", specifier = ">=2024.8.30" },
     { name = "dill", specifier = ">=0.4.1" },
     { name = "evidently", specifier = ">=0.7.21" },
     { name = "fastapi", specifier = ">=0.138.0" },
@@ -1640,6 +1643,8 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "onnxruntime", specifier = ">=1.27.0" },
     { name = "pandas", specifier = ">=3.0.3" },
+    { name = "pymongo", extras = ["srv"], specifier = ">=4.17.0" },
+    { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "redis", specifier = ">=5.2.1" },
     { name = "scikit-learn", specifier = ">=1.9.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.49.0" },
@@ -1658,7 +1663,6 @@ training = [
     { name = "onnxmltools", specifier = ">=1.16.0" },
     { name = "pandera", specifier = ">=0.32.0" },
     { name = "pyarrow", specifier = ">=24.0.0" },
-    { name = "pymongo", extras = ["srv"], specifier = ">=4.17.0" },
     { name = "sagemaker", specifier = ">=3.0.1" },
     { name = "xgboost", specifier = ">=3.2.0" },
 ]
