@@ -19,29 +19,29 @@ and wired together.
 
 ```mermaid
 flowchart LR
-    subgraph Training["Training (GitHub Actions + DVC)"]
-        RAW[(Raw data\nDVC + S3)] --> PIPE[dvc repro\ningest → validate → transform\n→ train → evaluate → compare]
-        PIPE --> GATE{Challenger\nbeats champion?}
-        GATE -- yes --> S3M[(S3 champion\nmodel + preprocessor\n+ metrics + reference.csv)]
+    subgraph Training["Training — GitHub Actions + DVC"]
+        RAW[("Raw data<br/>DVC + S3")] --> PIPE["dvc repro<br/>ingest → validate → transform<br/>→ train → evaluate → compare"]
+        PIPE --> GATE{"Challenger<br/>beats champion?"}
+        GATE -->|yes| S3M[("S3 champion<br/>model + preprocessor<br/>+ metrics + reference snapshot")]
     end
 
-    subgraph Serving["Serving (AWS)"]
-        ECR[(ECR image)] --> ECS[ECS Fargate\nFastAPI + ONNX Runtime]
-        S3M -. loaded at startup .-> ECS
-        ECS -- RPUSH per request --> REDIS[(ElastiCache Redis\npredictions:buffer)]
+    subgraph Serving["Serving — AWS"]
+        ECR[("ECR image")] --> ECS["ECS Fargate<br/>FastAPI + ONNX Runtime"]
+        S3M -.->|"loaded at startup"| ECS
+        ECS -->|"RPUSH per request"| REDIS[("ElastiCache Redis<br/>predictions buffer")]
     end
 
     subgraph Monitoring["Monitoring loop"]
-        SCHED[EventBridge Scheduler\nhourly] --> FLUSH[Fargate flush task]
-        REDIS --> FLUSH --> MONGO[(MongoDB Atlas\npredictions)]
-        CRON[GitHub Actions cron\ndaily] --> DRIFT[Evidently\nfeature drift check]
+        SCHED["EventBridge Scheduler<br/>hourly"] --> FLUSH["Fargate flush task"]
+        REDIS --> FLUSH --> MONGO[("MongoDB Atlas<br/>predictions")]
+        CRON["GitHub Actions cron<br/>daily"] --> DRIFT["Evidently<br/>feature drift check"]
         MONGO --> DRIFT
-        S3M -. reference.csv .-> DRIFT
-        DRIFT -- drift.flag --> DISPATCH[workflow_dispatch\ntrain.yaml]
+        S3M -.->|"reference snapshot"| DRIFT
+        DRIFT -->|"drift flag"| DISPATCH["workflow_dispatch<br/>train.yaml"]
         DISPATCH --> PIPE
     end
 
-    GATE -- yes --> REDEPLOY[ECS force-new-deployment]
+    GATE -->|yes| REDEPLOY["ECS force-new-deployment"]
     REDEPLOY --> ECS
 ```
 
