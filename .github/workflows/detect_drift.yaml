@@ -1,0 +1,55 @@
+name: Drift Detection
+
+permissions:
+  contents: read
+  actions: write # dispatches train.yaml when drift is flagged
+
+concurrency:
+  group: detect-drift
+  cancel-in-progress: false
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 1 * * *" # daily, 01:00 UTC
+
+jobs:
+  detect-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Detect drift
+        env:
+          CONNECTION_URL: ${{ secrets.CONNECTION_URL }}
+        run: uv run python -m src.monitoring.detect_drift
+
+      - name: Upload drift report
+        uses: actions/upload-artifact@v4
+        with:
+          name: drift-summary
+          path: |
+            drift_summary.json
+            drift_report_*.html
+          if-no-files-found: ignore
+
+      - name: Trigger retraining on drift
+        if: ${{ hashFiles('drift.flag') != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Drift detected — dispatching training pipeline."
+          curl -sf -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/train.yaml/dispatches" \
+            -d '{"ref":"main"}'

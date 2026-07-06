@@ -14,6 +14,7 @@ from src.constants import (
     CHAMPION_LATEST_METRIC_PATH,
     CHAMPION_LATEST_MODEL_PATH,
     CHAMPION_LATEST_PREPROCESSOR_PATH,
+    CHAMPION_LATEST_REFERENCE_PATH,
     MODEL_PACKAGE_GROUP_NAME,
     SAGEMAKER_INSTANCE_TYPE,
     SAGEMAKER_ROLE_ARN,
@@ -166,6 +167,43 @@ class BucketOperations:
             self.upload_preprocessor_artifact(
                 preprocessor_path, CHAMPION_LATEST_PREPROCESSOR_PATH
             )
+
+        except Exception as e:
+            raise e
+
+    def upload_reference_data(self, file_path: str) -> str:
+        """Upload the drift-detection reference snapshot next to the champion
+        artifacts. Drift monitoring compares live traffic against this file."""
+        try:
+            logging.info(
+                f"Uploading drift reference snapshot to: s3://{BUCKET_NAME}/{CHAMPION_LATEST_REFERENCE_PATH}"
+            )
+            self.s3_client.upload_file(
+                file_path, BUCKET_NAME, CHAMPION_LATEST_REFERENCE_PATH
+            )
+
+            return f"s3://{BUCKET_NAME}/{CHAMPION_LATEST_REFERENCE_PATH}"
+
+        except Exception as e:
+            raise e
+
+    def download_reference_data(self) -> Path:
+        try:
+            temp_dir = Path(tempfile.mkdtemp(prefix="fraudguard_reference_"))
+            local_path = temp_dir / "reference.csv"
+
+            self.s3_client.download_file(
+                Bucket=BUCKET_NAME,
+                Key=CHAMPION_LATEST_REFERENCE_PATH,
+                Filename=local_path,
+            )
+            logging.info(f"Downloaded drift reference snapshot to {local_path}")
+
+            return local_path
+
+        except ClientError:
+            logging.error("Drift reference snapshot not found in S3.")
+            raise
 
         except Exception as e:
             raise e
