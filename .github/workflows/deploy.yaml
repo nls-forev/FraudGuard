@@ -6,9 +6,10 @@ on:
     branches: [main]
     paths:
       - "Dockerfile"
-      - "src/api/**"
-      - "src/utils/model_loader.py"
+      - "src/**"
+      - "config/**"
       - "pyproject.toml"
+      - "uv.lock"
 
 jobs:
   deploy:
