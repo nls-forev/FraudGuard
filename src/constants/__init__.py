@@ -22,6 +22,9 @@ SAGEMAKER_INSTANCE_TYPE: str = "ml.m5.large"
 DATABASE_NAME = "FraudGuard"
 COLLECTION_NAME = "fraudguard-data"
 
+# Redis Config
+REDIS_PREDICTIONS_KEY: str = "predictions:buffer"
+
 # Training Data Config
 PIPELINE_NAME = "fraudguard"
 ARTIFACT_DIR = "artifact"
