@@ -5,9 +5,8 @@
 [![Deploy](https://github.com/nls-forev/FraudGuard/actions/workflows/deploy.yaml/badge.svg)](https://github.com/nls-forev/FraudGuard/actions/workflows/deploy.yaml)
 [![Drift Detection](https://github.com/nls-forev/FraudGuard/actions/workflows/detect_drift.yaml/badge.svg)](https://github.com/nls-forev/FraudGuard/actions/workflows/detect_drift.yaml)
 
-Production-grade MLOps system for bank account fraud detection — from raw data
-to a live API on AWS, with the full loop automated: **train → gate → deploy →
-monitor → detect drift → retrain**.
+An MLOps system for bank account fraud detection that runs the whole loop
+without a human in it: train, gate, deploy, monitor, detect drift, retrain.
 
 The model is XGBoost on the [Bank Account Fraud
 (NeurIPS 2022)](https://www.kaggle.com/datasets/sgpjesus/bank-account-fraud-dataset-neurips-2022)
@@ -45,27 +44,28 @@ flowchart LR
 
 ## How the loop closes
 
-1. **Serve** — FastAPI + ONNX Runtime on ECS Fargate. The container downloads
+1. Serving runs FastAPI and ONNX Runtime on ECS Fargate. The container pulls
    the current champion bundle (model, preprocessor, metrics) from S3 at
-   startup, so a model rollout is just a service restart — no image rebuild.
-2. **Log** — every `/predict` response is pushed to an ElastiCache Redis list.
-   The write is wrapped so a Redis outage can never fail an inference request,
-   and it adds no Mongo latency to the hot path.
-3. **Flush** — an EventBridge-scheduled Fargate task drains the buffer into
-   MongoDB hourly (insert-before-trim: at-least-once delivery, records pushed
-   mid-flush survive).
-4. **Detect** — a daily GitHub Actions cron runs Evidently's `DataDriftPreset`
-   over all 29 feature columns: the champion's held-out split (exported to S3
-   at promotion time) vs the last 7 days of live traffic. The HTML report is
-   archived to S3.
-5. **Retrain** — if the share of drifted columns crosses the threshold, the
-   workflow dispatches `train.yaml`. The challenger only ships if it beats the
-   champion's metrics; promotion uploads new champion artifacts *and* a fresh
-   drift reference, then restarts the ECS service.
+   startup, so shipping a new model is a service restart, not an image
+   rebuild.
+2. Every `/predict` response gets pushed onto an ElastiCache Redis list. The
+   write is wrapped so a dead Redis can't fail an inference request, and it
+   keeps Mongo off the hot path entirely.
+3. An EventBridge-scheduled Fargate task drains the buffer into MongoDB every
+   hour. It inserts before it trims, which gives at-least-once delivery and
+   lets records pushed mid-flush survive.
+4. A daily GitHub Actions cron runs Evidently's `DataDriftPreset` over all 29
+   feature columns, comparing the champion's held-out split (exported to S3 at
+   promotion time) against the last 7 days of live traffic. The HTML report
+   goes to S3.
+5. If the share of drifted columns crosses the threshold, the workflow
+   dispatches `train.yaml`. A challenger only ships if it beats the champion's
+   metrics. Promotion uploads new champion artifacts plus a fresh drift
+   reference, then restarts the ECS service.
 
-Feature drift (not label drift) is the retraining signal by design: confirmed
-fraud labels lag live traffic by weeks (chargebacks), so waiting for label
-drift means detecting problems a month late.
+Retraining triggers on feature drift rather than label drift, because
+confirmed fraud labels arrive weeks late via chargebacks. Wait for label
+drift and you find out about the problem a month after it started.
 
 ## Stack
 
@@ -93,9 +93,10 @@ drift means detecting problems a month late.
 | `deploy.yaml` | push to `main` touching anything baked into the image | rebuild image → push ECR → `force-new-deployment` |
 | `detect_drift.yaml` | daily cron; manual | Evidently drift check; dispatches `train.yaml` when flagged |
 
-Two deployment paths on purpose: **code changes** need an image rebuild
-(`deploy.yaml`); **model promotions** only need a service restart to re-pull
-the champion from S3 (`train.yaml`'s deploy job). Neither blocks the other.
+There are two deployment paths on purpose. Code changes need an image rebuild
+(`deploy.yaml`). Model promotions only need a service restart so the container
+re-pulls the champion from S3 (the deploy job inside `train.yaml`). Neither
+one blocks the other.
 
 ## API
 
@@ -109,8 +110,8 @@ curl -X POST http://<host>:8000/predict \
 {"fraud_probability": 0.022064208984375, "is_fraud": 0}
 ```
 
-The request schema (29 features, bounds and categorical domains enforced with
-Pydantic) lives in `src/api/schema.py`.
+The request schema lives in `src/api/schema.py`: 29 features, with bounds and
+categorical domains enforced by Pydantic.
 
 ## Repository layout
 
@@ -140,24 +141,29 @@ uv run dvc repro                 # full training pipeline
 uv run uvicorn src.api.app:app   # serve (downloads champion from S3)
 ```
 
-Required environment (`.env` for local, task-def secrets in ECS):
-`CONNECTION_URL` (MongoDB Atlas), `REDIS_URL` (defaults to localhost), AWS
-credentials with S3 read.
+Environment needed (`.env` locally, task-def secrets in ECS): `CONNECTION_URL`
+for MongoDB Atlas, `REDIS_URL` (defaults to localhost), and AWS credentials
+with S3 read.
 
 ## Design decisions
 
-- **Redis buffer between `/predict` and Mongo** — no per-request Mongo write
-  latency, no hammering the database with tiny documents. Accepted trade-off:
-  a small loss window if Redis dies before a flush; fine for prediction
-  *logging*, never for anything transactional.
-- **Champion loaded from S3 at container startup** — decouples the model
-  lifecycle from the image lifecycle. Model rollouts and rollbacks are service
-  restarts.
-- **Promotion gate in CI, not in serving** — the API never sees a model that
-  hasn't beaten the incumbent on the held-out split.
-- **`executionRoleArn` vs `taskRoleArn`** — the ECS agent's permissions (pull
-  image, write logs, read SSM secrets) and the app's permissions (S3 model
-  download) are separate roles; conflating them is the classic Fargate
-  crash-loop.
-- **Serving image stays lean** — `uv sync --no-default-groups` keeps training
-  deps (xgboost, sagemaker, ~1GB) out of the runtime container.
+A Redis buffer sits between `/predict` and Mongo so requests never pay for a
+Mongo write and the database never gets hammered with tiny documents. The
+trade-off is a small loss window if Redis dies before a flush. That's
+acceptable for prediction logging and would not be for anything transactional.
+
+The champion loads from S3 at container startup, which separates the model
+lifecycle from the image lifecycle. Rollouts and rollbacks are both service
+restarts.
+
+The promotion gate lives in CI, not in serving, so the API never sees a model
+that failed to beat the incumbent on the held-out split.
+
+`executionRoleArn` and `taskRoleArn` are separate on purpose. The ECS agent
+needs to pull the image, write logs, and read SSM secrets; the app needs to
+download the model from S3. Conflating the two is the classic Fargate
+crash-loop.
+
+The serving image stays lean because `uv sync --no-default-groups` keeps
+training dependencies (xgboost, sagemaker, roughly 1GB of them) out of the
+runtime container.
